@@ -1,6 +1,6 @@
 package model
 
-type modifyPassword struct {
+type ModifyPassword struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }

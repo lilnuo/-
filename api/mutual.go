@@ -1,30 +1,19 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"time"
 	"webproject/dao"
-	"webproject/middleware"
 	"webproject/model"
 	"webproject/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Ping1(c *gin.Context) {
-	fmt.Println("ping1:正在处理核心逻辑")
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	})
-	fmt.Println("over")
-}
-
 func Register(c *gin.Context) {
 	var req model.User
-	if err := c.ShouldBind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "user already exists",
+			"message": "bad request",
 		})
 	}
 	if dao.FindUser(req.Username, req.Password) {
@@ -48,28 +37,53 @@ func Login(c *gin.Context) {
 	}
 	if !dao.FindUser(req.Username, req.Password) {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "user not found",
+			"message": "user does not exists",
 		})
 		return
 	}
-	token, err := utils.MakeToken(req.Username, time.Now().Add(10*time.Minute))
+	token, err := utils.GenerateToken(req.Username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "token generate error,internal error",
+			"message": "internal server error",
+		})
+		return
+	}
+	refreshToken, err := utils.GenerateToken(req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "internal server error",
 		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
+		"message": "login",
 		"token":   token,
-		"message": "log in",
+		"refresh": refreshToken,
 	})
 }
-func InitRouter_gin() {
-	r := gin.Default()
-	r.GET("/ping", middleware.Example1(), middleware.Example2(), Ping1)
-	r.POST("login", Login)
-	err := r.Run(":8080")
-	if err != nil {
+func ModifyPassword(c *gin.Context) {
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "unauthorized",
+		})
 		return
 	}
+	var req model.ModifyPassword
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "bad request",
+		})
+		return
+	}
+	if !dao.FindUser(username.(string), req.OldPassword) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "old password is error",
+		})
+		return
+	}
+	dao.ModifyPassword(username.(string), req.NewPassword)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "modify password success",
+	})
 }
