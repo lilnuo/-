@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitRouter() *gin.Engine {
+func InitRouter() {
 	r := gin.Default()
 	r.POST("/login", Login)
 	r.POST("/register", Register)
@@ -16,6 +16,7 @@ func InitRouter() *gin.Engine {
 	auth := r.Group("/")
 	auth.Use(middleware.JWTAuthMiddleware())
 	{
+
 		auth.POST("/modify_password", ModifyPassword)
 		auth.GET("ping", Ping1)
 	}
