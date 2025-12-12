@@ -87,3 +87,53 @@ func ModifyPassword(c *gin.Context) {
 		"message": "modify password success",
 	})
 }
+func RefreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "bad request",
+		})
+		return
+	}
+	token, err := utils.ValidateToken(req.RefreshToken)
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid token",
+		})
+		return
+	}
+	claims, err := utils.ExtractClaims(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "invalid token claims",
+		})
+		return
+	}
+	if claims["type"] != "refresh" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "not a refresh token",
+		})
+		return
+	}
+	username, ok := claims["username"].(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "invalid token",
+		})
+		return
+	}
+	newToken, err := utils.GenerateToken(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "internal server error",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "refresh token successfully",
+		"token":   newToken,
+	})
+
+}
