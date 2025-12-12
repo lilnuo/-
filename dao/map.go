@@ -58,7 +58,7 @@ func FindUser(username string, password string) bool {
 	}
 	return false
 }
-func ModifyPassword(username string, password string) string {
+func ModifyPassword(username string, password string) {
 	database[username] = password
 	saveUsersToFile()
 }
